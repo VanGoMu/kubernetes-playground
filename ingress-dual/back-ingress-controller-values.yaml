@@ -1,0 +1,29 @@
+controller:
+  name: controller-back
+  image:
+    registry: k8s.gcr.io
+    image: ingress-nginx/controller
+    tag: v1.5.1
+    digest: sha256:4ba73c697770664c1e00e9f968de14e08f606ff961c76e5d7033a4a9c593c629
+  containerName: controller
+  ingressClassResource:
+    name: nginx-back
+    enabled: true
+    default: false
+    controllerValue: "k8s.io/ingress-nginx-back"
+  service:
+    enabled: true
+    type: ClusterIP
+    ports:
+      http: 80
+      https: 443
+  config:
+    use-forwarded-headers: "true"
+    enable-real-ip: "true"
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi

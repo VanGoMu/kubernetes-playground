@@ -1,0 +1,99 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: app
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: sample-app
+  namespace: app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: sample-app
+  template:
+    metadata:
+      labels:
+        app: sample-app
+    spec:
+      initContainers:
+      - name: prepare-content
+        image: busybox
+        command: ["/bin/sh", "-c"]
+        args:
+          - mkdir -p /content/api;
+            cp /configmap/api_index.html /content/api/index.html;
+        volumeMounts:
+        - name: html-content
+          mountPath: /content
+        - name: configmap-volume
+          mountPath: /configmap
+      containers:
+      - name: nginx
+        image: nginx:1.21
+        ports:
+        - containerPort: 80
+        volumeMounts:
+        - name: html-content
+          mountPath: /usr/share/nginx/html
+      volumes:
+      - name: html-content
+        emptyDir: {}
+      - name: configmap-volume
+        configMap:
+          name: sample-app-content
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sample-app-content
+  namespace: app
+data:
+  api_index.html: |
+    <!DOCTYPE html>
+    <html>
+    <head>
+      <title>Sample App access to rewritten url /api</title>
+    </head>
+    <body>
+      <h1>Hello from nested Ingress!</h1>
+      <p>This request was processed through two ingress controllers and accessed to path rewritten /api</p>
+    </body>
+    </html>
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sample-app
+  namespace: app
+spec:
+  selector:
+    app: sample-app
+  ports:
+  - port: 80
+    targetPort: 80
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: back-ingress
+  namespace: app
+  annotations:
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/rewrite-target: /api/$2
+    nginx.ingress.kubernetes.io/use-regex: "true"
+spec:
+  ingressClassName: nginx-back 
+  rules:
+  - host: app.local
+    http:
+      paths:
+      - path: /prefix/test(/|$)(.*)
+        pathType: Prefix
+        backend:
+          service:
+            name: sample-app
+            port:
+              number: 80

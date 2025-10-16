@@ -1,0 +1,28 @@
+controller:
+  name: controller-front
+  image:
+    registry: k8s.gcr.io
+    image: ingress-nginx/controller
+    tag: v1.5.1
+    digest: sha256:4ba73c697770664c1e00e9f968de14e08f606ff961c76e5d7033a4a9c593c629
+  containerName: controller
+  ingressClassResource:
+    name: nginx-front
+    enabled: true
+    default: false
+    controllerValue: "k8s.io/ingress-nginx-front"
+  service:
+    enabled: true
+    type: NodePort
+    nodePorts:
+      http: 31080
+      https: 31443
+  config:
+    use-forwarded-headers: "true"
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
